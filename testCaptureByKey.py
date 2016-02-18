@@ -16,9 +16,36 @@ import numpy as np
 cam = cv2.VideoCapture(0)
 while True :
 	s, imageFromCam = cam.read() # captures imageFromCam
-	cv2.rectangle(imageFromCam,(12,23),(124,245),(255,0,0),5,8,0)
 	grayImageFromCam = cv2.cvtColor(imageFromCam, cv2.COLOR_BGR2GRAY)
-	cv2.imshow("Test Picture", grayImageFromCam) # displays captured imageFromCam
+	# ret,threshImage = cv2.threshold(grayImageFromCam,75,125,0)
+	blurred = cv2.GaussianBlur(grayImageFromCam, (35,35), 0)
+	_, thresh1 = cv2.threshold(blurred, 70, 255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+	im2, contours, hierarchy = cv2.findContours(thresh1,2,1)
+
+	max_area = -1
+	for i in range(len(contours)):
+		cnt=contours[i]
+		area = cv2.contourArea(cnt)
+		if(area>max_area):
+			max_area=area
+			ci=i
+	cnt=contours[ci]
+	hull = cv2.convexHull(cnt,returnPoints = False)
+	defects = cv2.convexityDefects(cnt,hull)
+
+	for i in range(defects.shape[0]):
+		s,e,f,d = defects[i,0]
+		start = tuple(cnt[s][0])
+		end = tuple(cnt[e][0])
+		far = tuple(cnt[f][0])
+		cv2.line(imageFromCam,start,end,[0,255,0],2)
+		cv2.line(thresh1,start,end,[0,255,0],2)
+		x,y,w,h = cv2.boundingRect(cnt)
+		cv2.rectangle(imageFromCam, (x,y), (x+w,y+h),[0,255,0], 2)
+		cv2.rectangle(thresh1, (x,y), (x+w,y+h),[0,255,0], 2)
+		# cv2.circle(imageFromCam,far,5,[0,0,255],-1)
+
+	cv2.imshow("Test Capture Picture", thresh1) # displays captured imageFromCam
 
 	if cv2.waitKey(1) & 0xFF == ord('q'):
 		cv2.imwrite("test.png",imageFromCam) # writes image test.bmp to disk
